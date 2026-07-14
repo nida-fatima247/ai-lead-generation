@@ -1,0 +1,22 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.local
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+
+# API keys or secrets
+credentials.json
+secrets.json
+config.json

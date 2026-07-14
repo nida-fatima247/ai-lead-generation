@@ -1,0 +1,615 @@
+{
+  "name": "Lead Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "068533b1-5db2-4656-8a10-7771385c4d4c",
+              "name": "searchQuery",
+              "value": "={{ \n$json.city\n  ? `${$json.industry} in ${$json.city}, ${$json.country}`\n  : `${$json.industry} in ${$json.country}`\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        0
+      ],
+      "id": "d2a3f21a-0691-49df-a1eb-0b581557a820",
+      "name": "Create Search Query"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_maps"
+            },
+            {
+              "name": "q",
+              "value": "={{$json.searchQuery}}"
+            },
+            {
+              "name": "type",
+              "value": "search"
+            },
+            {
+              "name": "api_key",
+              "value": "YOUR_API_KEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        0
+      ],
+      "id": "bee8cea3-87ae-4b92-91b6-fe95881e10bb",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "local_results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        960,
+        0
+      ],
+      "id": "af4064c7-68da-4fb7-9841-d0d8c4902da7",
+      "name": "Split Companies"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "256d7e4a-f71e-41a4-a0ea-178eb950bc13",
+              "leftValue": "={{$json.website}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "6ace6d10-d2b2-499f-8399-e9be72f3c362",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  \"api_key\": \"tvly-dev-YOUR_API_KEY\",\n  \"query\": `What does the company on ${$json.website} do? What services does it offer?`,\n  \"search_depth\": \"advanced\",\n  \"include_answer\": true,\n  \"include_raw_content\": false,\n  \"max_results\": 3\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1504,
+        -96
+      ],
+      "id": "cf883602-f82d-4215-9d9a-8b2d508707c5",
+      "name": "Research Company"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert B2B sales consultant, AI automation specialist, and web development consultant.\n\nAnalyze the company information below and return ONLY valid JSON.\n\nCompany Name:\n{{$('If').item.json.title}}\n\nWebsite:\n{{$('If').item.json.website}}\n\nBusiness Type:\n{{$('If').item.json.type}}\n\nAddress:\n{{$('If').item.json.address}}\n\nPhone:\n{{$('If').item.json.phone}}\n\nGoogle Rating:\n{{$('If').item.json.rating}}\n\nCompany Research:\n{{$json.answer}}\n\nAdditional Research:\n{{ JSON.stringify($json.results) }}\n\nEvaluate the company as a potential client for website development and AI automation services.\n\nReturn ONLY this JSON:\n\n{\n  \"research_summary\":\"\",\n  \"company_size_estimate\":\"\",\n  \"web_dev_fit\":true,\n  \"ai_automation_fit\":true,\n  \"manual_process_signals\":\"\",\n  \"website_quality\":\"\",\n  \"website_red_flags\":\"\",\n  \"automation_opportunities\":[\n    \"\",\n    \"\"\n  ],\n  \"pain_points\":[\n    \"\",\n    \"\"\n  ],\n  \"recommended_services\":[\n    \"\",\n    \"\"\n  ],\n  \"decision_maker\":\"Founder / CEO / Marketing Director / Operations Manager\",\n  \"best_outreach_channel\":\"\",\n  \"estimated_priority\":\"High\",\n  \"icp_score\":0,\n  \"confidence_score\":0,\n  \"cold_email_hook\":\"\"\n}\n\nIMPORTANT:\n\n- Return ONLY valid JSON.\n- Do not use markdown.\n- Do not use ```json.\n- Do not add explanations.\n- Every string must be enclosed in double quotes.\n- Every array element must be enclosed in double quotes.\n- The output must be parseable by JSON.parse().",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1808,
+        -96
+      ],
+      "id": "cf2e0007-7e9c-464c-b481-0b7e6217c5ce",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        112
+      ],
+      "id": "cd76c6a9-e204-41af-88db-221b7c5fb62d",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "AsckRd4R7zuR6GgZ",
+          "name": "OpenRouter account 9"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  let text = item.json.text || item.json.output || Object.values(item.json)[0];\n\n  text = text\n    .replace(/```json/g, \"\")\n    .replace(/```/g, \"\")\n    .trim();\n\n  try {\n    return {\n      json: JSON.parse(text)\n    };\n  } catch (e) {\n    return {\n      json: {\n        parse_failed: true,\n        error: e.message,\n        raw_output: text\n      }\n    };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        -96
+      ],
+      "id": "11112c01-3483-4bc0-aad6-1d1a1def590c",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18tVMpWHaBjYxKUme5NcpIO5WyJR16kQd75UiFFPNaV8",
+          "mode": "list",
+          "cachedResultName": "AI Lead Database",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18tVMpWHaBjYxKUme5NcpIO5WyJR16kQd75UiFFPNaV8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18tVMpWHaBjYxKUme5NcpIO5WyJR16kQd75UiFFPNaV8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company Name": "={{$('If').item.json.title}}",
+            "Website": "={{$('If').item.json.website}}",
+            "Phone": "={{$('If').item.json.phone}}",
+            "Address": "={{$('If').item.json.address}}",
+            "Rating": "={{$('If').item.json.rating}}",
+            "Industry": "={{$('If').item.json.type}}",
+            "Company Size": "={{$json.company_size_estimate}}",
+            "Website Quality": "={{$json.website_quality}}",
+            "Web Dev Fit": "={{$json.web_dev_fit}}",
+            "AI Automation Fit": "={{$json.ai_automation_fit}}",
+            "ICP Score": "={{$json.icp_score}}",
+            "Decision Maker": "={{$json.decision_maker}}",
+            "Priority": "={{$json.estimated_priority}}",
+            "Automation Opportunities": "={{ $json.automation_opportunities.join(\", \") }}",
+            "Pain Points": "={{ $json.pain_points.join(\", \") }}",
+            "Cold Email Hook": "={{$json.cold_email_hook}}",
+            "Research Summary": "={{$json.research_summary}}",
+            "Date Added": "={{ new Date().toISOString().split('T')[0] }}",
+            "Place ID": "={{$('If').item.json.place_id}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website",
+              "displayName": "Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Website Quality",
+              "displayName": "Website Quality",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Web Dev Fit",
+              "displayName": "Web Dev Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Automation Fit",
+              "displayName": "AI Automation Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ICP Score",
+              "displayName": "ICP Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision Maker",
+              "displayName": "Decision Maker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Automation Opportunities",
+              "displayName": "Automation Opportunities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pain Points",
+              "displayName": "Pain Points",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cold Email Hook",
+              "displayName": "Cold Email Hook",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Summary",
+              "displayName": "Research Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Place ID",
+              "displayName": "Place ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2352,
+        -96
+      ],
+      "id": "6d41c15e-caf0-481d-8439-95c918efc164",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CE1WtCmtshHUCAEB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "AI Lead Generation",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Industry",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Country",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Number of Leads",
+              "fieldType": "number",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5186a466-4e3c-4ac7-9260-bf921208095f",
+      "name": "On form submission",
+      "webhookId": "8031c47b-46dc-4c4a-80a5-eb76d0f861b6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae8e9eb1-3bf8-438b-8919-ae5f52cfb921",
+              "name": "industry",
+              "value": "={{$json[\"Industry\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "1e9dadfe-7afb-49e0-8f6d-9873e3d0e5d7",
+              "name": "country",
+              "value": "={{$json[\"Country\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "faf13b62-7e1c-4cc4-80e4-e4ae0afd661e",
+              "name": "leadCount",
+              "value": "={{$json[\"Number of Leads\"]}}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        0
+      ],
+      "id": "06f37c78-9f2a-450f-857b-f6f89dfd7d7a",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create Search Query": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Companies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Companies": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Research Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Company": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Create Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ed219fad-a5c1-4a21-8d42-972fbd714c2a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a2def4efb69de9cddf9e067d4cff18cd3fe525b02db986a90dcdea8fe41d8e73"
+  },
+  "nodeGroups": [],
+  "id": "eGkjQ5K5t7dIO5e8",
+  "tags": []
+}
